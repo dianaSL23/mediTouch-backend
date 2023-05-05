@@ -10,8 +10,6 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import Reminders.AppointmentsReminder;
-import jakarta.annotation.PostConstruct;
-
 @SpringBootApplication
 public class MeditouchApplication {
 
