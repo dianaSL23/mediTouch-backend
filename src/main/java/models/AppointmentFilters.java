@@ -1,7 +1,5 @@
 package models;
 
-import Enums.AppointmentStatus;
-
 public class AppointmentFilters {
 	int isCancelled = -1;
 	String appointmentStatus = null;
@@ -11,7 +9,7 @@ public class AppointmentFilters {
 		super();
 	}
 
-	
+
 	public int getIsCancelled() {
 		return isCancelled;
 	}
@@ -20,7 +18,7 @@ public class AppointmentFilters {
 		this.isCancelled = isCancelled;
 	}
 
-	
+
 
 	public AppointmentFilters(int isCancelled, String appointmentStatus,
 			String appointmentType) {
@@ -30,7 +28,7 @@ public class AppointmentFilters {
 		this.appointmentType = appointmentType;
 	}
 
-	
+
 
 	@Override
 	public String toString() {
@@ -49,7 +47,7 @@ public class AppointmentFilters {
 	}
 
 
-	
+
 
 	public String getAppointmentStatus() {
 		return appointmentStatus;
@@ -59,5 +57,5 @@ public class AppointmentFilters {
 		this.appointmentStatus = appointmentStatus;
 	}
 
-	
+
 }

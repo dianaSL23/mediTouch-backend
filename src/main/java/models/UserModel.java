@@ -1,7 +1,5 @@
 package models;
 
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import Enums.UserRoles;
@@ -111,7 +109,7 @@ public class UserModel {
 		return isLocked;
 	}
 
-	
+
 
 	public void setIsLocked(boolean isLocked) {
 		this.isLocked = isLocked;

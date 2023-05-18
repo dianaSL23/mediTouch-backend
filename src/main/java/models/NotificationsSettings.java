@@ -9,7 +9,7 @@ public class NotificationsSettings {
 	boolean onAddFeatureEmail;
 	boolean onAppointmentReminder;
 	int userFk;
-	
+
 	public NotificationsSettings() {
 	}
 
@@ -25,7 +25,7 @@ public class NotificationsSettings {
 		this.userFk = userFk;
 	}
 
-	
+
 
 	public int getNotificationSettingsId() {
 		return notificationSettingsId;

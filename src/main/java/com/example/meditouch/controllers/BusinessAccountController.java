@@ -879,133 +879,124 @@ public class BusinessAccountController {
 		return ResponseEntity.ok(jsonResponse.toString());
 
 	}
-
 	// passed
-	@PostMapping("/addAppointmentPrescription")
-	public ResponseEntity<Object> addAppointmentPrescription(
-			@RequestBody AppointmentPrescriptionModel appointmentPrescriptionModel)
-			throws SQLException, IOException, NoSuchAlgorithmException {
-		PreparedStatement myStmt = null;
+		@PostMapping("/addAppointmentPrescription")
+		public ResponseEntity<Object> addAppointmentPrescription(
+				@RequestBody AppointmentPrescriptionModel appointmentPrescriptionModel)
+				throws SQLException, IOException, NoSuchAlgorithmException {
+			PreparedStatement myStmt = null;
 
-		JSONObject jsonResponse = new JSONObject();
+			JSONObject jsonResponse = new JSONObject();
 
-		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
-				"insert into appointment_prescriptions_table (appointmentFk, prescriptionDescription) values ( ?, ?)",
-				Statement.RETURN_GENERATED_KEYS);
+			myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
+					"insert into appointment_prescriptions_table (appointmentFk, prescriptionDescription) values ( ?, ?)",
+					Statement.RETURN_GENERATED_KEYS);
 
-		myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
-		myStmt.setString(2, appointmentPrescriptionModel.getPrescriptionDescription());
+			myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
+			myStmt.setString(2, appointmentPrescriptionModel.getPrescriptionDescription());
 
-		myStmt.executeUpdate();
-		ResultSet slotsGeneratedKeys = myStmt.getGeneratedKeys();
-		int prescriptionId = -1;
-		while (slotsGeneratedKeys.next()) {
-			prescriptionId = slotsGeneratedKeys.getInt(1);
-			appointmentPrescriptionModel.setPrescriptionId(prescriptionId);
-		}
-		slotsGeneratedKeys.close();
-		// send notification to the user
-		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
-				"select *, bat.userFk as userFromFk from appointments_table ap join business_account_schedule_slots_table basst on basst.slotId=ap.slotFk join business_account_table bat on bat.businessAccountId = ap.businessAccountFk join users_table ut on ut.userId=bat.userFk where ap.appointmentId=?");
-		myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
-		ResultSet myRs = myStmt.executeQuery();
-		JSONObject jsonReturned = new JSONObject();
-
-		if (myRs.next()) {
-			JSONObject json = new JSONObject();
-			String firstName = myRs.getString("firstName");
-			String lastName = myRs.getString("lastName");
-			Date slotDate = myRs.getDate("slotDate");
-			int userFromFk = myRs.getInt("userFromFk");
-
-			int userFk = myRs.getInt("userFk");
-			String message = "Doctor " + firstName + " " + lastName + " added prescription for your appointment on "
-					+ slotDate + " . Check it out";
-			json.put("message", message);
-			json.put("prescriptionId", prescriptionId);
-			json.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
-
-			NotificationsModel notification = new NotificationsModel(false, -1, userFk, userFromFk, message,
-					NotificationType.RESERVED_APPOINTMENT, "/appointment_prescription/" + prescriptionId);
-			notificationModel.add(notification);
-			addNotification(notificationModel);
-			notificationModel.clear();
-			myStmt.close();
-
-			messagingTemplate.convertAndSend("/topic/appointmentPrescription/" + userFk, json.toString());
-
-		}
-		myRs.close();
-		myStmt.close();
-
-		jsonReturned.put("prescriptionId", prescriptionId);
-		jsonReturned.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
-		jsonReturned.put("prescriptionDescription", appointmentPrescriptionModel.getPrescriptionDescription());
-
-		jsonResponse.put("message", "Appointment Prescription Result Successfully");
-		jsonResponse.put("result", jsonReturned);
-		jsonResponse.put("responseCode", 200);
-		return ResponseEntity.ok(jsonResponse.toString());
-
-	}
-
-	@PutMapping("/updateAppointmentPrescription")
-	public ResponseEntity<Object> updateAppointmentPrescription(
-			@RequestBody AppointmentPrescriptionModel appointmentPrescriptionModel)
-			throws SQLException, IOException, NoSuchAlgorithmException {
-		PreparedStatement myStmt = null;
-
-		JSONObject jsonResponse = new JSONObject();
-
-		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
-				"update appointment_prescriptions_table set prescriptionDescription=? where appointmentFk=?");
-		myStmt.setString(1, appointmentPrescriptionModel.getPrescriptionDescription());
-		myStmt.setInt(2, appointmentPrescriptionModel.getAppointmentFk());
-
-		myStmt.executeUpdate();
-
-		// send notification to the user
-		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
-				"select *, bat.userFk as userFromFk from appointments_table ap join business_account_schedule_slots_table basst on basst.slotId=ap.slotFk join business_account_table bat on bat.businessAccountId = ap.businessAccountFk join users_table ut on ut.userId=bat.userFk where ap.appointmentId=?");
-		myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
-		ResultSet myRs = myStmt.executeQuery();
-		if (myRs.next()) {
-			JSONObject json = new JSONObject();
-			String firstName = myRs.getString("firstName");
-			String lastName = myRs.getString("lastName");
-			Date slotDate = myRs.getDate("slotDate");
-			int userFromFk = myRs.getInt("userFromFk");
-
-			int userFk = myRs.getInt("userFk");
-			String message = "Doctor " + firstName + " " + lastName + " added prescription for your appointment on "
-					+ slotDate + " . Check it out";
-			json.put("message", message);
-			json.put("prescriptionId", appointmentPrescriptionModel.getPrescriptionId());
-			json.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
-
-			NotificationsModel notification = new NotificationsModel(false, -1, userFk, userFromFk, message,
-					NotificationType.RESERVED_APPOINTMENT,
-					"/appointment_prescription/" + appointmentPrescriptionModel.getPrescriptionId());
-			notificationModel.add(notification);
-			addNotification(notificationModel);
-			notificationModel.clear();
-			myStmt.close();
-
-			messagingTemplate.convertAndSend("/topic/appointmentPrescription/" + userFk, json.toString());
+			myStmt.executeUpdate();
+			ResultSet slotsGeneratedKeys = myStmt.getGeneratedKeys();
+			int prescriptionId = -1;
+			while (slotsGeneratedKeys.next()) {
+				prescriptionId = slotsGeneratedKeys.getInt(1);
+				appointmentPrescriptionModel.setPrescriptionId(prescriptionId);
+			}
+			slotsGeneratedKeys.close();
+			// send notification to the user
+			myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
+					"select *, bat.userFk as userFromFk from appointments_table ap join business_account_schedule_slots_table basst on basst.slotId=ap.slotFk join business_account_table bat on bat.businessAccountId = ap.businessAccountFk join users_table ut on ut.userId=bat.userFk where ap.appointmentId=?");
+			myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
+			ResultSet myRs = myStmt.executeQuery();
 			JSONObject jsonReturned = new JSONObject();
-			jsonReturned.put("prescriptionId", appointmentPrescriptionModel.getPrescriptionId());
+
+			if (myRs.next()) {
+				JSONObject json = new JSONObject();
+				String firstName = myRs.getString("firstName");
+				String lastName = myRs.getString("lastName");
+				Date slotDate = myRs.getDate("slotDate");
+				int userFromFk = myRs.getInt("userFromFk");
+				int userFk = myRs.getInt("userFk");
+				String message = "Doctor " + firstName + " " + lastName + " added prescription for your appointment on "
+						+ slotDate + " . Check it out";
+				json.put("message", message);
+				json.put("prescriptionId", prescriptionId);
+				json.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
+				List<NotificationsModel> list = new ArrayList<>();
+				list.add( new NotificationsModel(false, -1, userFk, userFromFk, message,
+						NotificationType.APPOINTMENT_PRESCRIPTION,""));
+				addNotification(list);
+				messagingTemplate.convertAndSend("/topic/appointmentPrescription/" + userFk, json.toString());
+				messagingTemplate.convertAndSend("/topic/notifications/"  + userFk, json.toString());
+			}
+			myRs.close();
+			myStmt.close();
+
+			jsonReturned.put("prescriptionId", prescriptionId);
 			jsonReturned.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
 			jsonReturned.put("prescriptionDescription", appointmentPrescriptionModel.getPrescriptionDescription());
 
-			jsonResponse.put("message", "Appointment Prescription Updated Successfully");
+			jsonResponse.put("message", "Appointment Prescription Result Successfully");
 			jsonResponse.put("result", jsonReturned);
 			jsonResponse.put("responseCode", 200);
 			return ResponseEntity.ok(jsonResponse.toString());
+
 		}
 
-		return null;
+		@PutMapping("/updateAppointmentPrescription")
+		public ResponseEntity<Object> updateAppointmentPrescription(
+				@RequestBody AppointmentPrescriptionModel appointmentPrescriptionModel)
+				throws SQLException, IOException, NoSuchAlgorithmException {
+			PreparedStatement myStmt = null;
 
-	}
+			JSONObject jsonResponse = new JSONObject();
+
+			myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
+					"update appointment_prescriptions_table set prescriptionDescription=? where appointmentFk=?");
+			myStmt.setString(1, appointmentPrescriptionModel.getPrescriptionDescription());
+			myStmt.setInt(2, appointmentPrescriptionModel.getAppointmentFk());
+
+			myStmt.executeUpdate();
+
+			// send notification to the user
+			myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(
+					"select *, bat.userFk as userFromFk from appointments_table ap join business_account_schedule_slots_table basst on basst.slotId=ap.slotFk join business_account_table bat on bat.businessAccountId = ap.businessAccountFk join users_table ut on ut.userId=bat.userFk where ap.appointmentId=?");
+			myStmt.setInt(1, appointmentPrescriptionModel.getAppointmentFk());
+			ResultSet myRs = myStmt.executeQuery();
+			if (myRs.next()) {
+				JSONObject json = new JSONObject();
+				String firstName = myRs.getString("firstName");
+				String lastName = myRs.getString("lastName");
+				Date slotDate = myRs.getDate("slotDate");
+				int userFromFk = myRs.getInt("userFromFk");
+
+				int userFk = myRs.getInt("userFk");
+				String message = "Doctor " + firstName + " " + lastName + " added prescription for your appointment on "
+						+ slotDate + " . Check it out";
+				json.put("message", message);
+				json.put("prescriptionId", appointmentPrescriptionModel.getPrescriptionId());
+				json.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
+
+				List<NotificationsModel> list = new ArrayList<>();
+				list.add( new NotificationsModel(false, -1, userFk, userFromFk, message,
+						NotificationType.APPOINTMENT_PRESCRIPTION,""));
+				addNotification(list);
+				messagingTemplate.convertAndSend("/topic/appointmentPrescription/" + userFk, json.toString());
+				messagingTemplate.convertAndSend("/topic/notifications/"  + userFk, json.toString());
+				JSONObject jsonReturned = new JSONObject();
+				jsonReturned.put("prescriptionId", appointmentPrescriptionModel.getPrescriptionId());
+				jsonReturned.put("appointmentFk", appointmentPrescriptionModel.getAppointmentFk());
+				jsonReturned.put("prescriptionDescription", appointmentPrescriptionModel.getPrescriptionDescription());
+
+				jsonResponse.put("message", "Appointment Prescription Updated Successfully");
+				jsonResponse.put("result", jsonReturned);
+				jsonResponse.put("responseCode", 200);
+				return ResponseEntity.ok(jsonResponse.toString());
+			}
+
+			return null;
+
+		}
 
 	// passed
 	@DeleteMapping("/deleteService")
@@ -1736,7 +1727,9 @@ public class BusinessAccountController {
 		}
 		myRs.close();
 		query = "select * from (SELECT "
-				+ (globalSearchModel.getUserId() == -1 ? "" : "COALESCE(fv.favoriteId, -1) as favoriteId,")
+				+ (globalSearchModel.getUserId() == -1 ? "" : "COALESCE(fv.favoriteId, -1) as favoriteId, ")
+				+ (globalSearchModel.getUserId() == -1 ? "" : "COALESCE(bl.blockId, -1) as blockId,")
+
 				+ "  basst.isDeleted, temp.userId,srt.servicePrice,srt.currencyUnit, srt.serviceName,srt.serviceId,basst.slotId,basst.isReserved, basst.slotDate, basst.slotStartTime, basst.slotEndTime, basst.isLocked,temp.biography, temp.clinicLocation,temp.clinicLocationLongitude,temp.clinicLocationLatitude,  temp.businessAccountId,  temp.firstName, temp.lastName, temp.userEmail, temp.profilePicture, st.specialityName, st.specialityDescription    from (select *  from business_account_table bat join users_table u on u.userId = bat.userFk where u.isVerified=1 and u.isApproved=1 Limit "
 				+ recordsByPage + " OFFSET " + ((pageNumber - 1) * recordsByPage) + ") as temp join specialities_table "
 				+ " st on temp.specialityFk = st.specialityId join business_account_schedule_table bast "
@@ -1745,45 +1738,55 @@ public class BusinessAccountController {
 		if (globalSearchModel.getUserId() != -1) {
 			query += " left join (select COALESCE(ft.businessAccountFk, -1) as favoriteBusinessAccountFk, COALESCE(ft.favoriteId, -1) as favoriteId from favorites_table ft where ft.userFk="
 					+ globalSearchModel.getUserId()
-					+ ")  as fv ON fv.favoriteBusinessAccountFk = temp.businessAccountId";
+					+ ")  as fv ON fv.favoriteBusinessAccountFk = temp.businessAccountId ";
 		}
+		
+		if (globalSearchModel.getUserId() != -1) {
+			query += " left join (select COALESCE(bast.businessAccountFk, -1) as businessAccountFk, COALESCE(bast.blockId, -1) as blockId from business_account_blockings_table bast where bast.userFk="
+					+ globalSearchModel.getUserId()
+					+ ")  as bl ON bl.businessAccountFk = temp.businessAccountId ";
+		}
+		
 		boolean appendWhere = true;
+	
 		if (globalSearchModel.getSpecialityFk() != -1) {
 			query += " where st.specialityId=" + globalSearchModel.getSpecialityFk();
 			appendWhere = false;
+
 		}
 
 		if (globalSearchModel.getMinPrice() != -1 && globalSearchModel.getMaxPrice() != -1
 				&& !Double.isNaN(globalSearchModel.getMinPrice()) && !Double.isNaN(globalSearchModel.getMaxPrice())) {
 
-			query += (!appendWhere ? "and " : " where ") + "srt.servicePrice >=  " + globalSearchModel.getMinPrice()
+			query += (!appendWhere ?  " and " : " where ") + "srt.servicePrice >=  " + globalSearchModel.getMinPrice()
 					+ " and srt.servicePrice <= " + globalSearchModel.getMaxPrice();
 			appendWhere = false;
-
+			
 		}
 		if (globalSearchModel.getMinAvailability() != null && globalSearchModel.getMaxAvailability() != null) {
-			query += (!appendWhere ? "and " : " where ") + " basst.slotStartTime >=  '"
+			query += (!appendWhere ? " and " : " where ") + " basst.slotStartTime >=  '"
 					+ globalSearchModel.getMinAvailability() + "' and basst.slotEndTime <= '"
 					+ globalSearchModel.getMaxAvailability() + "'";
 			appendWhere = false;
-
+			
 		}
 		query += ") as total";
+		appendWhere = true;
 		if (!globalSearchModel.getSearchText().equals("null")) {
 			query += (!appendWhere ? " and " : " where ") + " firstName LIKE '%" + globalSearchModel.getSearchText()
 					+ "%' or lastName LIKE '%" + globalSearchModel.getSearchText() + "%' or clinicLocation LIKE '%"
 					+ globalSearchModel.getSearchText() + "%' ";
 			appendWhere = false;
-
+			
 		}
 		if (globalSearchModel.getIsFavorite() != -2 && globalSearchModel.getUserId() != -1) {
 			query += (!appendWhere ? " and " : " where ") + " total.favoriteId "
 					+ (globalSearchModel.getIsFavorite() == -1 ? " = -1 " : " != -1");
 			appendWhere = false;
-
+			
 		}
-		query += " where total.isDeleted=0 ";
 
+	    query +=(!appendWhere ? " and " : " where ") + " total.isDeleted=0";
 		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(query);
 		try {
 			myRs = myStmt.executeQuery();
@@ -1825,6 +1828,8 @@ public class BusinessAccountController {
 					userDetails.put("userId", myRs.getInt("userId"));
 					if (globalSearchModel.getUserId() != -1) {
 						userDetails.put("favoriteId", myRs.getInt("favoriteId"));
+						userDetails.put("blockId", myRs.getInt("blockId"));
+
 
 					} else {
 						userDetails.put("favoriteId", -1);
@@ -1891,12 +1896,17 @@ public class BusinessAccountController {
 		JSONObject jsonResponse = new JSONObject();
 		PreparedStatement myStmt = null;
 
-		String query = "Select * from (SELECT COUNT(apt.appointmentId) as total_appointments, COUNT(DISTINCT apt.userFk) AS total_patients FROM appointments_table apt"
-
-				+ ") as p1 JOIN (SELECT COUNT(ut.userId) as total_hps from users_table ut where ut.userRole='HEALTH_PROFESSIONAL'"
-
-				+ ") as p2 JOIN (SELECT COUNT(ut.userId) as total_users from users_table ut where ut.userRole='PATIENT'"
-				+ ") as p3";
+		String query = "SELECT p1.total_appointments, p1.total_patients, p2.total_hps, (p2.total_hps + p3.total_patients) as total_users\r\n"
+				+ "FROM (SELECT COUNT(apt.appointmentId) as total_appointments, COUNT(DISTINCT apt.userFk) AS total_patients \r\n"
+				+ "      FROM appointments_table apt) as p1 \r\n"
+				+ "JOIN (SELECT COUNT(ut.userId) as total_hps \r\n"
+				+ "      FROM users_table ut \r\n"
+				+ "      WHERE ut.userRole='HEALTH_PROFESSIONAL') as p2 \r\n"
+				+ "JOIN (SELECT COUNT(ut.userId) as total_patients \r\n"
+				+ "      FROM users_table ut \r\n"
+				+ "      WHERE ut.userRole='PATIENT') as p3 \r\n"
+				+ "ON 1=1;\r\n"
+				+ "";
 		myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(query);
 
 		ResultSet myRs = myStmt.executeQuery();

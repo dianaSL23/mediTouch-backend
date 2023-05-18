@@ -5,6 +5,7 @@ public class ReservationSlot {
 	int slotFk;
 	int userFk;
 
+	@Override
 	public String toString() {
 		return "{\"reservationId\":" + reservationId + ", \"slotId\":" + slotFk + ", \"userFk\":" + userFk + "}";
 	}

@@ -6,7 +6,7 @@ import java.util.List;
 public class SurveyQuestionAnswersModel {
 	int answerId;
 	int questionFk;
-	List<String> answerText = new ArrayList<String>();
+	List<String> answerText = new ArrayList<>();
 	String questionText;
 
 	@Override

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,11 +29,12 @@ public class ScheduleReminders {
 
 	class RemindTask extends TimerTask {
 
+		@Override
 		public void run() {
 			try {
 				Calendar calendar = Calendar.getInstance();
 				calendar.setTime(new Date());
-				calendar.set(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek());
+//				calendar.set(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek());
 				Date startDate = calendar.getTime();
 				String formattedStartDate = new SimpleDateFormat("yyyy-MM-dd").format(startDate);
 				calendar.add(Calendar.DAY_OF_WEEK, 6);
@@ -56,7 +56,7 @@ public class ScheduleReminders {
 				ResultSet rs = myStmt.executeQuery();
 
 				while (rs.next()) {
-					if (rs.getInt("numSlots") == 0 && rs.getBoolean("onScheduleReminder") == true) {
+					if (rs.getInt("numSlots") == 0 && rs.getBoolean("onScheduleReminder")) {
 						JSONObject jsonReturned = new JSONObject();
 						jsonReturned.put("userFromFk", "");
 						jsonReturned.put("userToFk", "");
@@ -67,7 +67,7 @@ public class ScheduleReminders {
 						jsonReturned.put("notificationUrl", "");
 						jsonReturned.put("userFromProfile", "");
 
-						messagingTemplate.convertAndSend("/topic/scheduleReminder/" + rs.getInt("userFk"),
+						messagingTemplate.convertAndSend("/topic/notifications/" + rs.getInt("userFk"),
 								jsonReturned.toString());
 					}
 				}

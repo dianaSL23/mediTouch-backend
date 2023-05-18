@@ -682,7 +682,7 @@ public class UserController {
 	// passed
 	@PostMapping("/contactUs")
 	public ResponseEntity<Object> contactUs(@RequestBody ContactUsModel contactUsModel)
-			throws SQLException, IOException, NoSuchAlgorithmException {
+			throws SQLException, IOException, NoSuchAlgorithmException, javax.mail.MessagingException {
 		PreparedStatement myStmt;
 
 		JSONObject jsonResponse = new JSONObject();
@@ -693,7 +693,7 @@ public class UserController {
 		myStmt.setString(2, contactUsModel.getLastName());
 		myStmt.setString(3, contactUsModel.getSubject());
 		myStmt.setString(4, contactUsModel.getMessage());
-
+		
 		myStmt.executeUpdate();
 		try (ResultSet generatedKeys = myStmt.getGeneratedKeys()) {
 			if (generatedKeys.next()) {
@@ -704,9 +704,12 @@ public class UserController {
 				JsonObject jsonObject = JsonParser.parseString(contactUsModelJson).getAsJsonObject();
 				JSONObject jsonReturned = new JSONObject(jsonObject.entrySet().stream().collect(
 						Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAsJsonPrimitive().getAsString())));
+				emailService.sendEmail("meditouch76@gmail.com", contactUsModel.getSubject(),"You have received a message from"+" "+
+						contactUsModel.getFirstName()+" "+contactUsModel.getLastName()+"The message is :"+" "+contactUsModel.getMessage());
 				jsonResponse.put("message", "Message Sent successfully");
 				jsonResponse.put("feedbacks", jsonReturned);
 				jsonResponse.put("responseCode", 200);
+				
 				myStmt.close();
 
 				return ResponseEntity.ok(jsonResponse.toString());
@@ -1251,9 +1254,11 @@ public class UserController {
 		if (rs.next()) {
 			boolean isReserved = rs.getBoolean("isReserved");
 			if (!isReserved) {
-				query = "update business_account_schedule_slots_table set isReserved = 1 where slotId=?";
+				query = "update business_account_schedule_slots_table set isReserved=? where slotId=?";
 				myStmt = DatabaseConnection.getInstance().getMyCon().prepareStatement(query);
-				myStmt.setInt(1, appointmentModel.getSlotFk());
+				myStmt.setInt(1, 1);
+
+				myStmt.setInt(2, appointmentModel.getSlotFk());
 				myStmt.executeUpdate();
 
 				query = "insert into appointments_table (slotFk, businessAccountFk, userFk, serviceFk,appointmentDescription) values(?, ?,?,?,?)";
@@ -1290,13 +1295,6 @@ public class UserController {
 
 						json.put("type", "ADD");
 						json.put("appointment", appointmentJson);
-
-						messagingTemplate.convertAndSend(
-								"/topic/addAppointment/" + appointmentModel.getBusinessAccountUserId(),
-								appointmentJson.toString());
-						messagingTemplate.convertAndSend("/topic/addAppointment/" + appointmentModel.getUserFk(),
-								appointmentJson.toString());
-
 						JSONObject reservedSlot = new JSONObject();
 						reservedSlot.put("reservedSlotId", appointmentModel.getSlotFk());
 						reservedSlot.put("type", "ADD");
@@ -1309,22 +1307,28 @@ public class UserController {
 						ResultSet rs2 = myStmt.executeQuery();
 						if (rs2.next()) {
 							JSONObject jsonSocket = new JSONObject();
+							String  notificationText=rs2.getString("firstName") + " " + rs2.getString("lastName")
+							+ " reserved an appointment on " + rs2.getTimestamp("slotStartTime");
 							jsonSocket.put("userFromFk", appointmentModel.getUserFk());
 							jsonSocket.put("userToFk", rs2.getInt("userId"));
-							jsonSocket.put("notificationText",
-									rs2.getString("firstName") + " " + rs2.getString("lastName")
-											+ " reserved an appointment on " + rs2.getTimestamp("slotStartTime"));
+							jsonSocket.put("notificationText", notificationText);			
 							jsonSocket.put("notificationType", "RESERVED_APPOINTMENT");
 							jsonSocket.put("isOpen", false);
 							jsonSocket.put("notificationUrl", "");
 							jsonSocket.put("userFromProfile", rs2.getString("profilePicture"));
-
+							List<NotificationsModel> list = new ArrayList<>();
+							list.add(new NotificationsModel(false, 0,
+									appointmentModel.getBusinessAccountUserId(), appointmentModel.getUserFk(),notificationText,
+									NotificationType.APPOINTMENT_STATUS, ""));
+							addNotification(list);
+							messagingTemplate.convertAndSend(
+									"/topic/addAppointment/" + appointmentModel.getBusinessAccountUserId(),
+									appointmentJson.toString());
 							messagingTemplate.convertAndSend(
 									"/topic/notifications/" + appointmentModel.getBusinessAccountUserId(),
 									jsonSocket.toString());
 							rs2.close();
 						}
-
 						messagingTemplate.convertAndSend("/topic/reservedSlots/", reservedSlot.toString());
 						Gson gson = new Gson();
 
@@ -1386,19 +1390,13 @@ public class UserController {
 					JSONObject json2 = new JSONObject();
 					json2.put("appointmentId", appointmentModel.getAppointmentId());
 					json2.put("key", "appointmentActualStartTime");
-
 					json2.put("value", appointmentActualStartTimeNewValue);
 
-					messagingTemplate.convertAndSend("/topic/appointmentModifications/" + appointmentModel.getUserFk(),
-							json2.toString());
-					messagingTemplate.convertAndSend(
-							"/topic/appointmentModifications/" + appointmentModel.getBusinessAccountUserId(),
-							json2.toString());
-
+				
 					JSONObject jsonNotificationReturned = new JSONObject();
 					jsonNotificationReturned.put("userFromFk", appointmentModel.getBusinessAccountUserId());
 					jsonNotificationReturned.put("userToFk", appointmentModel.getUserFk());
-					jsonNotificationReturned.put("notificationText", "");
+					jsonNotificationReturned.put("notificationText", notificationText);
 					jsonNotificationReturned.put("notificationType", "APPOINTMENT_STATUS");
 					jsonNotificationReturned.put("isOpen", false);
 					jsonNotificationReturned.put("notificationUrl", "");
@@ -1408,7 +1406,13 @@ public class UserController {
 							appointmentModel.getBusinessAccountUserId(), notificationText,
 							NotificationType.APPOINTMENT_STATUS, ""));
 					addNotification(list);
-
+					messagingTemplate.convertAndSend("/topic/appointmentModifications/" + appointmentModel.getUserFk(),
+							json2.toString());
+					messagingTemplate.convertAndSend(
+							"/topic/appointmentModifications/" + appointmentModel.getBusinessAccountUserId(),
+							json2.toString());
+					messagingTemplate.convertAndSend("/topic/notifications/" + appointmentModel.getUserFk(),
+							jsonNotificationReturned.toString());
 				}
 			}
 			if (appointmentModel.getAppointmentActualEndTime() != null) {
@@ -1429,16 +1433,12 @@ public class UserController {
 
 					json2.put("value", appointmentActualEndTimeNewValue);
 
-					messagingTemplate.convertAndSend("/topic/appointmentModifications/" + appointmentModel.getUserFk(),
-							json2.toString());
-					messagingTemplate.convertAndSend(
-							"/topic/appointmentModifications/" + appointmentModel.getBusinessAccountUserId(),
-							json2.toString());
+				
 
 					JSONObject jsonNotificationReturned = new JSONObject();
 					jsonNotificationReturned.put("userFromFk", appointmentModel.getBusinessAccountUserId());
 					jsonNotificationReturned.put("userToFk", appointmentModel.getUserFk());
-					jsonNotificationReturned.put("notificationText", "");
+					jsonNotificationReturned.put("notificationText", notificationText);
 					jsonNotificationReturned.put("notificationType", "APPOINTMENT_STATUS");
 					jsonNotificationReturned.put("isOpen", false);
 					jsonNotificationReturned.put("notificationUrl", "");
@@ -1448,19 +1448,28 @@ public class UserController {
 							appointmentModel.getBusinessAccountUserId(), notificationText,
 							NotificationType.APPOINTMENT_STATUS, ""));
 					addNotification(list);
+					messagingTemplate.convertAndSend("/topic/appointmentModifications/" + appointmentModel.getUserFk(),
+							json2.toString());
+					messagingTemplate.convertAndSend(
+							"/topic/appointmentModifications/" + appointmentModel.getBusinessAccountUserId(),
+							json2.toString());
+					messagingTemplate.convertAndSend("/topic/notifications/" + appointmentModel.getUserFk(),
+							jsonNotificationReturned.toString());
 				}
 			}
 
 			if (!Objects.equals(appointmentStatusNewValue, appointmentStatusOldValue)) {
+				String notificationText = "Doctor " + rs.getString("hpFirstName") + " " + rs.getString("hpLastName")
+				+ " " + (appointmentModel.getAppointmentStatus().toString().equals("ACCEPTED") ? "accepted"
+						: "rejected")
+				+ " your appointment you reserved on " + rs.getTimestamp("slotStartTime");
 				JSONObject json = new JSONObject();
 				json.put("appointmentId", appointmentModel.getAppointmentId());
 				json.put("key", "appointmentStatus");
-
 				json.put("value", appointmentStatusNewValue);
-				String notificationText = "Doctor " + rs.getString("hpFirstName") + " " + rs.getString("hpLastName")
-						+ " " + (appointmentModel.getAppointmentStatus().toString().equals("ACCEPTED") ? "accepted"
-								: "rejected")
-						+ " your appointment you reserved on " + rs.getTimestamp("slotStartTime");
+				json.put("message", notificationText);
+				messagingTemplate.convertAndSend("/topic/AppointmentStatus/" + appointmentModel.getUserFk(),
+						json.toString());
 				JSONObject jsonNotificationReturned = new JSONObject();
 				jsonNotificationReturned.put("userFromFk", appointmentModel.getBusinessAccountUserId());
 				jsonNotificationReturned.put("userToFk", appointmentModel.getUserFk());
@@ -1710,7 +1719,7 @@ public class UserController {
 		JSONObject jsonResponse = new JSONObject();
 		JSONObject json = new JSONObject();
 
-		String query = "SELECT" + "  (SELECT COUNT(*) FROM users_table) AS total_users,"
+		String query = "SELECT" + "  (SELECT COUNT(*) FROM users_table WHERE userRole != 'ADMIN') AS total_users ,"
 				+ "  (SELECT COUNT(*) FROM business_account_table) AS total_business_accounts,"
 				+ "  (SELECT COUNT(*) FROM appointments_table) AS total_appointments,"
 				+ "  (SELECT COUNT(*) FROM specialities_table) AS total_specialities" + "";
@@ -1823,8 +1832,7 @@ public class UserController {
 				myStmt.setInt(2, favoriteModel.getUserFk());
 
 				ResultSet rs = myStmt.executeQuery();
-				messagingTemplate.convertAndSend("/topic/favoriteDoctors/" + favoriteModel.getUserFk(),
-						socketJson.toString());
+				
 				if (rs.next()) {
 					if (rs.getBoolean("onFavorite")) {
 						String notificationText = rs.getString("patientFirstName") + " "
@@ -1841,9 +1849,10 @@ public class UserController {
 						list.add(new NotificationsModel(false, 0, rs.getInt("businessAccountUserId"),
 								favoriteModel.getUserFk(), notificationText, NotificationType.FAVORITE, ""));
 						addNotification(list);
+						messagingTemplate.convertAndSend("/topic/favoriteDoctors/" + favoriteModel.getUserFk(),
+								jsonNotificationReturned.toString());
 						messagingTemplate.convertAndSend("/topic/notifications/" + rs.getInt("businessAccountUserId"),
 								jsonNotificationReturned.toString());
-//						emailService.sendMail("mohammadalialloul@gmail.com", "Favortie", "Added");
 
 					}
 				}

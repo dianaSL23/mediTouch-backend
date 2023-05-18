@@ -34,7 +34,7 @@ public class ServiceModel {
 		this.serviceName = serviceName;
 		this.currencyUnit = currencyUnit;
 	}
-	
+
 	public ServiceModel(int businessAccountFk, double servicePrice, String serviceName,
 			CurrencyUnits currencyUnit) {
 		super();

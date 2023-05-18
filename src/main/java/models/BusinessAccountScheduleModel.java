@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BusinessAccountScheduleModel {
-	List<BusinessAccountScheduleSlotModel> scheduleSlots = new ArrayList<BusinessAccountScheduleSlotModel>();
+	List<BusinessAccountScheduleSlotModel> scheduleSlots = new ArrayList<>();
 
 	@Override
 	public String toString() {

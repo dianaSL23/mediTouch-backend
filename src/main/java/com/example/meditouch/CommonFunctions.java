@@ -2,10 +2,10 @@ package com.example.meditouch;
 
 import java.security.SecureRandom;
 
-import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 
 public class CommonFunctions {
+
 	private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	private static final int LENGTH = 6;
 
@@ -49,5 +49,7 @@ public class CommonFunctions {
 
 		return distance;
 	}
+
+
 
 }

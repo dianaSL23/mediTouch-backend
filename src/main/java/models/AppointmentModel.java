@@ -1,6 +1,5 @@
 package models;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import Enums.AppointmentStatus;
@@ -19,6 +18,15 @@ public class AppointmentModel {
 	boolean isApproved = false;
 	boolean isCancelled = false;
 	UserRoles cancelledBy = null;
+	String appointmentDescription;
+
+	public String getAppointmentDescription() {
+		return appointmentDescription;
+	}
+
+	public void setAppointmentDescription(String appointmentDescription) {
+		this.appointmentDescription = appointmentDescription;
+	}
 
 	@Override
 	public String toString() {
@@ -27,7 +35,8 @@ public class AppointmentModel {
 				+ ", \"appointmentActualStartTime\":" + appointmentActualStartTime + ", \"appointmentActualEndTime\":"
 				+ appointmentActualEndTime + ", \"appointmentStatus\":\"" + appointmentStatus + "\", \"isApproved\":"
 				+ isApproved + ", \"isCancelled\":" + isCancelled + ", \"cancelledBy\":" + cancelledBy
-				+ ",\"businessAccountUserId\":" + businessAccountUserId + "}";
+				+ ",\"businessAccountUserId\":" + businessAccountUserId + ",\"appointmentDescription\":\""
+				+ appointmentDescription + "\"}";
 	}
 
 	public int getBusinessAccountUserId() {
@@ -44,7 +53,7 @@ public class AppointmentModel {
 
 	public AppointmentModel(int appointmentId, int slotFk, int businessAccountFk, int userFk, int serviceFk,
 			LocalDateTime appointmentActualStartTime, LocalDateTime appointmentActualEndTime,
-			AppointmentStatus appointmentStatus, boolean isApproved, boolean isCancelled, UserRoles cancelledBy) {
+			AppointmentStatus appointmentStatus, boolean isApproved, boolean isCancelled, UserRoles cancelledBy, String appointmentDescription) {
 		super();
 		this.appointmentId = appointmentId;
 		this.slotFk = slotFk;
@@ -57,6 +66,7 @@ public class AppointmentModel {
 		this.isApproved = isApproved;
 		this.isCancelled = isCancelled;
 		this.cancelledBy = cancelledBy;
+		this.appointmentDescription=appointmentDescription;
 	}
 
 	public int getAppointmentId() {
